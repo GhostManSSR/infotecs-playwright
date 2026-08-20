@@ -8,29 +8,43 @@
 - Chromium
 - Page Object Model (POM)
 - Docker
-- GitLab CI/CD
-- GitLab Container Registry
+- GitHub Actions
+- GitHub Packages
 
 ## Структура проекта
 
 ```text
 infotecs-playwright/
-├── pages/
-│   ├── BasePage.ts
-│   ├── HomePage.ts
-│   └── PatentsPage.ts
-├── tests/
-│   └── infotecs.spec.ts
-├── Dockerfile
-├── .dockerignore
-├── playwright.config.ts
-├── package.json
-├── package-lock.json
-├── tsconfig.json
+├── .github/
+|   ├── workflows/
+│        └── ci.yml
+├── task_2/
+│   ├── pages/
+│   │   ├── BasePage.ts
+│   │   ├── HomePage.ts
+│   │   └── PatentsPage.ts
+│   ├── tests/
+│   │   └── infotecs.spec.ts
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── playwright.config.ts
+│   └── tsconfig.json
+│
+├── task_3/
+│   ├── .dockerignore
+│   └── Dockerfile
+│
+├── .gitignore
 └── README.md
 ```
 
 ## Установка зависимостей
+
+Переходим в нужную директорию:
+
+```bash
+cd task_2
+```
 
 Для установки зависимостей проекта выполнить:
 
@@ -54,27 +68,6 @@ npm test
 
 Тест запускается в браузере Chromium в headless-режиме с viewport 1920x1080.
 
-## Запуск тестов в Docker
-
-Сначала необходимо собрать Docker-образ:
-
-```bash
-docker build -t infotecs-playwright .
-```
-
-После успешной сборки запустить контейнер:
-
-```powershell
-docker run --rm -v "${PWD}/playwright-report:/app/playwright-report" -v "${PWD}/test-results:/app/test-results" infotecs-playwright
-```
-
-Контейнер автоматически запускает тесты без ручного вмешательства.
-
-После завершения тестов контейнер завершается с exit-кодом, соответствующим результату выполнения тестов:
-
-- `0` — тесты успешно пройдены;
-- ненулевой код — тесты завершились с ошибкой.
-
 ## HTML-отчёт
 
 После выполнения тестов HTML-отчёт сохраняется в директории:
@@ -96,6 +89,27 @@ test-results/
 ```
 
 В этой директории могут находиться скриншоты, видео и trace-файлы при ошибках тестов.
+
+## Запуск тестов в Docker
+
+Сначала необходимо собрать Docker-образ в корневом каталоге:
+
+```bash
+docker build -f task_3/Dockerfile -t playwright-tests . 
+```
+
+После успешной сборки запустить контейнер:
+
+```powershell
+docker run --rm -v "${PWD}/playwright-report:/app/playwright-report" -v "${PWD}/test-results:/app/test-results" infotecs-playwright
+```
+
+Контейнер автоматически запускает тесты без ручного вмешательства.
+
+После завершения тестов контейнер завершается с exit-кодом, соответствующим результату выполнения тестов:
+
+- `0` — тесты успешно пройдены;
+- ненулевой код — тесты завершились с ошибкой.
 
 ## Проверяемый сценарий
 
@@ -144,18 +158,18 @@ test-results/
 
 ## CI/CD
 
-Для автоматического запуска тестов используется GitLab CI/CD.
+Для автоматического запуска тестов используется GitHub Actions.
 
 Конфигурация pipeline находится в файле:
 
-`.gitlab-ci.yml`
+`ci.yml`
 
 Pipeline состоит из двух этапов:
 
 ```text
-test
+playwright-tests
   ↓
-publish
+publish-image
 ```
 
 ### Этап test
@@ -170,13 +184,13 @@ publish
 7) Получает exit-код контейнера.
 8)Копирует HTML-отчёт из контейнера.
 9) Копирует результаты тестирования.
-10) Загружает отчёты в GitLab Artifacts.
+10) Загружает отчёты в GitHub Artifacts.
 ```
 ### Этап publish
 
 Этап publish запускается только после успешного выполнения этапа test.
 
-На этом этапе Docker-образ проекта загружается в GitLab Container Registry.
+На этом этапе Docker-образ проекта загружается в GitHub Packages.
 
 Образ публикуется с двумя тегами:
 ```text
