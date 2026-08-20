@@ -58,8 +58,7 @@ jobs:
         run: |
           set -e
       
-          echo "=== Cleanup old container ==="
-      
+          echo "=== Cleanup old test container ==="
           docker rm -f infotecs-playwright-test 2>/dev/null || true
       
           echo "=== Create test container ==="
@@ -68,69 +67,49 @@ jobs:
             --name infotecs-playwright-test \
             -e CI=true \
             infotecs-playwright
-
+      
       - name: Run Playwright
+        id: playwright
+        shell: bash
         run: |
           set +e
       
           echo "=== Run Playwright ==="
       
-          docker run \
-            --name infotecs-playwright-test \
-            -e CI=true \
-            infotecs-playwright
+          docker start -a infotecs-playwright-test
       
           TEST_EXIT_CODE=$?
-      
-          set -e
       
           echo "Playwright exit code: $TEST_EXIT_CODE"
       
           mkdir -p playwright-report
           mkdir -p test-results
       
+          echo "=== Copy Playwright report ==="
+      
           docker cp \
             infotecs-playwright-test:/app/playwright-report/. \
             ./playwright-report/ || true
+      
+          echo "=== Copy test results ==="
       
           docker cp \
             infotecs-playwright-test:/app/test-results/. \
             ./test-results/ || true
       
-          docker rm -f infotecs-playwright-test || true
+          echo "TEST_EXIT_CODE=$TEST_EXIT_CODE" >> "$GITHUB_ENV"
       
-          echo "=== Final exit code: $TEST_EXIT_CODE ==="
+          set -e
       
-          exit "$TEST_EXIT_CODE"
-
-      - name: Save Playwright exit code
-        if: always()
-        run: |
-          echo "Playwright container finished"
-
-      - name: Copy Playwright report
-        if: always()
-        run: |
-          mkdir -p playwright-report
-
-          docker cp \
-            infotecs-playwright-test:/app/playwright-report/. \
-            ./playwright-report/ || true
-
-      - name: Copy test results
-        if: always()
-        run: |
-          mkdir -p test-results
-
-          docker cp \
-            infotecs-playwright-test:/app/test-results/. \
-            ./test-results/ || true
-
+          exit 0
+      
       - name: Remove test container
         if: always()
         run: |
-          docker rm -f infotecs-playwright-test || true
-
+          echo "=== Remove test container ==="
+      
+          docker rm -f infotecs-playwright-test 2>/dev/null || true
+      
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -138,7 +117,7 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
-
+      
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,10 +125,15 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
-
+      
       - name: Fail if Playwright failed
-        if: steps.playwright.outcome == 'failure'
-        run: exit 1
+        if: always()
+        run: |
+          echo "Final Playwright exit code: ${TEST_EXIT_CODE:-unknown}"
+      
+          if [ "${TEST_EXIT_CODE:-1}" -ne 0 ]; then
+            exit "$TEST_EXIT_CODE"
+          fi
 
   publish-image:
     name: Publish Docker image
