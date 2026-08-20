@@ -62,12 +62,38 @@ jobs:
             infotecs-playwright
 
       - name: Run Playwright
-        id: playwright
-        continue-on-error: true
         run: |
+          set +e
+      
           echo "=== Run Playwright ==="
-
-          docker start -a infotecs-playwright-test
+      
+          docker run \
+            --name infotecs-playwright-test \
+            -e CI=true \
+            infotecs-playwright
+      
+          TEST_EXIT_CODE=$?
+      
+          set -e
+      
+          echo "Playwright exit code: $TEST_EXIT_CODE"
+      
+          mkdir -p playwright-report
+          mkdir -p test-results
+      
+          docker cp \
+            infotecs-playwright-test:/app/playwright-report/. \
+            ./playwright-report/ || true
+      
+          docker cp \
+            infotecs-playwright-test:/app/test-results/. \
+            ./test-results/ || true
+      
+          docker rm -f infotecs-playwright-test || true
+      
+          echo "=== Final exit code: $TEST_EXIT_CODE ==="
+      
+          exit "$TEST_EXIT_CODE"
 
       - name: Save Playwright exit code
         if: always()
