@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const isDocker = process.env.DOCKER === 'true';
+const isCI = process.env.CI === 'true';
+
 export default defineConfig({
     testDir: './tests',
     fullyParallel: false,
@@ -17,7 +20,7 @@ export default defineConfig({
 
     use: {
         baseURL: 'https://infotecs.ru',
-        headless: !!process.env.CI,
+        headless: isDocker || isCI,
         viewport: {
             width: 1920,
             height: 1080

@@ -14,4 +14,6 @@ COPY task_2/tests ./tests
 
 RUN mkdir -p /app/playwright-report /app/test-results
 
+ENV DOCKER=true
+
 CMD ["npx", "playwright", "test"]
