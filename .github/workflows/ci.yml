@@ -58,6 +58,7 @@ jobs:
         run: |
           docker create \
             --name infotecs-playwright-test \
+            -e CI=true \
             infotecs-playwright
 
       - name: Run Playwright
